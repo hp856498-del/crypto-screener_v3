@@ -7,13 +7,16 @@ import pytz
 import time
 
 st.set_page_config(page_title="RSI Divergence Screener", layout="wide")
-
 st.title("🔥 RSI Divergence Screener (Accurate Version)")
 
 # ================= INPUTS =================
 date = st.date_input("Select Date")
 coin_limit = st.selectbox("Select Coins", [50, 100, 200])
-timeframe = st.selectbox("Select Timeframe", ["15m", "30m", "1h", "4h"])
+
+timeframe = st.selectbox(
+    "Select Timeframe",
+    ["15m", "30m", "1h", "2h", "4h", "1d"]
+)
 
 # ================= TIMEZONE =================
 IST = pytz.timezone("Asia/Kolkata")
@@ -34,8 +37,8 @@ def get_klines(symbol, interval):
     data = requests.get(url).json()
 
     df = pd.DataFrame(data, columns=[
-        "time","open","high","low","close","volume",
-        "ct","qav","nt","tb","tq","ignore"
+        "time", "open", "high", "low", "close", "volume",
+        "ct", "qav", "nt", "tb", "tq", "ignore"
     ])
 
     df["close"] = df["close"].astype(float)
@@ -69,7 +72,6 @@ def check_divergence(df):
     df["rsi"] = ta.momentum.RSIIndicator(df["close"], window=14).rsi()
 
     piv_high, piv_low = find_pivots(df)
-
     results = []
 
     # ===== BULLISH =====
@@ -83,7 +85,6 @@ def check_divergence(df):
         rsi_prev = df["rsi"][prev]
         rsi_curr = df["rsi"][curr]
 
-        # lower low + higher RSI
         if price_curr < price_prev and rsi_curr > rsi_prev:
             results.append({
                 "time": df["time"][curr],
@@ -101,7 +102,6 @@ def check_divergence(df):
         rsi_prev = df["rsi"][prev]
         rsi_curr = df["rsi"][curr]
 
-        # higher high + lower RSI
         if price_curr > price_prev and rsi_curr < rsi_prev:
             results.append({
                 "time": df["time"][curr],
@@ -137,7 +137,7 @@ if st.button("Scan"):
 
         progress.progress((i+1)/len(coins))
 
-    # ===== OUTPUT =====
+    # ================= OUTPUT =================
     if results:
         df_res = pd.DataFrame(results)
         st.dataframe(df_res, use_container_width=True)
